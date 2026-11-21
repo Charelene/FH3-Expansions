@@ -101,3 +101,14 @@ func TestFindDumpPackagesTwoCopies(t *testing.T) {
 		t.Fatal("two copies of Hot Wheels were accepted")
 	}
 }
+
+// azimuth.ini's folder= is relative to the Azimuth folder when the game lies inside it (issue #2).
+func TestGameFolderRelative(t *testing.T) {
+	az := filepath.Join(`H:\`, "Xbox One")
+	if got, want := gameFolder(az, "Opus_1.0.125.0_x64__8wekyb3d8bbwe"), filepath.Join(az, "Opus_1.0.125.0_x64__8wekyb3d8bbwe"); got != want {
+		t.Errorf("relative: %s, want %s", got, want)
+	}
+	if got := gameFolder(az, `S:\Games\FH3`); got != `S:\Games\FH3` {
+		t.Errorf("absolute changed to %s", got)
+	}
+}

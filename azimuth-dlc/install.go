@@ -252,6 +252,10 @@ func installMode(dir, blizzard, hotwheels string, revert, check, mod bool) error
 	}
 	gameExe := ""
 	if folder != "" {
+		// Azimuth writes folder= relative to its own folder when the game lies inside it
+		if !filepath.IsAbs(folder) {
+			folder = filepath.Join(dir, folder)
+		}
 		gameExe = filepath.Join(folder, "Mount", "forza_durango_release_final.exe")
 	}
 	quiet = true

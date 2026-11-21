@@ -404,6 +404,16 @@ func abs(p string) string {
 	return filepath.Clean(a)
 }
 
+// gameFolder resolves the folder= of a title in azimuth.ini. Azimuth writes it
+// relative to its own folder when the game lies inside that folder (issue #2:
+// folder=Opus_1.0.125.0_x64__8wekyb3d8bbwe next to azimuth.exe).
+func gameFolder(azimuth, folder string) string {
+	if folder == "" || filepath.IsAbs(folder) {
+		return folder
+	}
+	return filepath.Clean(filepath.Join(azimuth, folder))
+}
+
 func checkSetup(in *setupInput) error {
 	if _, err := os.Stat(filepath.Join(in.azimuth, "azimuth.exe")); err != nil {
 		return fmt.Errorf("no azimuth.exe in %s", in.azimuth)
@@ -413,7 +423,7 @@ func checkSetup(in *setupInput) error {
 		if err != nil {
 			return err
 		}
-		in.xbox = f
+		in.xbox = gameFolder(in.azimuth, f)
 	}
 	in.media = filepath.Join(in.xbox, "Mount", "media")
 	for _, f := range []string{`_library\Shaders.zip`, `Tracks\homespace02\bin.zip`, `Tracks\australia\bin.zip`} {
