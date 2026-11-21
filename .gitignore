@@ -1,0 +1,7 @@
+*.exe
+*.dll
+*.log
+*.tmp
+dist/
+*.syso
+*.o
