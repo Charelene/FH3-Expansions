@@ -37,11 +37,12 @@ const baseGameName = "Microsoft.OpusPG" // Forza Horizon 3 for Windows
 // findDumpPackages looks under root (up to four folders deep) for the Windows
 // base game and the two expansions, by the identity in each AppxManifest.xml;
 // what is not found there is then looked for on the rest of root's drive (from
-// the drive's root, also four deep). A folder with a manifest is a package and
-// is not searched further. Copies converted by this tool (short display name,
-// or a folder holding the conversion marker) and anything under skip are left
-// out. Two copies of one package are an error: the user has to pick a folder
-// that holds one.
+// the drive's root, also four deep). Packages are searched inside too, since
+// the expansions are often kept in the base game's folder; a copy of a package
+// inside another copy of the same package counts once (the outer one). Copies
+// converted by this tool (short display name, or a folder holding the
+// conversion marker) and anything under skip are left out. Two separate copies
+// of one package are an error: the user has to pick a folder that holds one.
 func findDumpPackages(root, skip string) (base, hotwheels, blizzard string, err error) {
 	found := map[string][]string{}
 	want := map[string]bool{baseGameName: true, hotWheelsName: true, blizzardName: true}
@@ -62,9 +63,8 @@ func findDumpPackages(root, skip string) (base, hotwheels, blizzard string, err 
 				return // converted by this tool
 			}
 			if want[id] {
-				found[id] = append(found[id], dir)
+				found[id] = addOuter(found[id], dir)
 			}
-			return
 		}
 		if depth == 4 {
 			return
@@ -121,6 +121,26 @@ func findDumpPackages(root, skip string) (base, hotwheels, blizzard string, err 
 	}
 	blizzard, err = pick(blizzardName, "Blizzard Mountain")
 	return
+}
+
+// addOuter adds dir to a list of package folders unless it is one of them or
+// lies inside one; folders inside dir are dropped, so nested copies of a
+// package count once, by their outermost folder.
+func addOuter(list []string, dir string) []string {
+	inside := func(child, parent string) bool {
+		rel, err := filepath.Rel(parent, child)
+		return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+	}
+	var out []string
+	for _, d := range list {
+		if inside(dir, d) {
+			return list // dir is d or lies inside it
+		}
+		if !inside(d, dir) {
+			out = append(out, d)
+		}
+	}
+	return append(out, dir)
 }
 
 // displayName is the Properties DisplayName of a package's manifest.

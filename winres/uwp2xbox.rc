@@ -1,8 +1,8 @@
 #include <winver.h>
 1 24 "app.manifest"
 1 VERSIONINFO
-FILEVERSION 1,1,0,0
-PRODUCTVERSION 1,1,0,0
+FILEVERSION 1,1,1,0
+PRODUCTVERSION 1,1,1,0
 FILEOS VOS_NT_WINDOWS32
 FILETYPE VFT_APP
 BEGIN
@@ -12,11 +12,11 @@ BEGIN
     BEGIN
       VALUE "CompanyName", "FH3MP"
       VALUE "FileDescription", "Converts the Windows copies of the FH3 expansions for Azimuth"
-      VALUE "FileVersion", "1.1.0"
+      VALUE "FileVersion", "1.1.1"
       VALUE "InternalName", "uwp2xbox"
       VALUE "OriginalFilename", "uwp2xbox.exe"
       VALUE "ProductName", "FH3 Expansions for Azimuth"
-      VALUE "ProductVersion", "1.1.0"
+      VALUE "ProductVersion", "1.1.1"
       VALUE "LegalCopyright", "GPL-3.0, see LICENSE"
     END
   END
