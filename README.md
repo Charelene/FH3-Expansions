@@ -14,8 +14,10 @@ Playground Games, Turn 10 Studios or the makers of Azimuth.
 
 - Azimuth **1.0.4** with Forza Horizon 3 added in its launcher. The converter takes the console shaders from that copy
   of the game.
-- Your Windows copy of Forza Horizon 3 and of both expansions, dumped from the Microsoft Store version you own, for
-  example with [UWPDumper](https://github.com/Wunkolo/UWPDumper).
+- Your Windows copy of Forza Horizon 3 and of both expansions, from the Microsoft Store version you own. The base game
+  can be dumped with [UWPDumper](https://github.com/Wunkolo/UWPDumper); the expansions are separate packages, which
+  UWPDumper does not dump. Both the Store builds (Hot Wheels 1.0.63.2, Blizzard Mountain 1.0.4.2) and the earlier
+  content-package builds are accepted. The expansions can sit inside the base game's folder.
 - About 9 GB of free disk space, about 9 GB of memory, and a few minutes.
 
 ## Install
