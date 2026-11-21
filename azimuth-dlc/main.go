@@ -45,6 +45,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -337,6 +338,11 @@ func readPackage(k known, dir string) (pkg, error) {
 	}
 	if m.Identity.Name != k.identity {
 		return p, fmt.Errorf("%s: Identity Name is %q, want %q", dir, m.Identity.Name, k.identity)
+	}
+	// Azimuth refuses a pinned package whose manifest text has no "ContentPackage>" followed by "true"
+	// (0x1401a1150, called after a list hit at 0x1401a2389). The converter adds that element.
+	if !regexp.MustCompile(`ContentPackage>[ \t\r\n]*true`).Match(mb) {
+		return p, fmt.Errorf("%s: the manifest does not declare a content package (<mx:ContentPackage>true</mx:ContentPackage>); Azimuth would refuse it. Run the converter's setup again", dir)
 	}
 	if !forFH3(m) {
 		return p, fmt.Errorf("%s: the manifest does not tie this package to Forza Horizon 3 (no MainPackageDependency %s, no xbox.contentpackage for product %s)", dir, fh3MainPackage, fh3Allowed)

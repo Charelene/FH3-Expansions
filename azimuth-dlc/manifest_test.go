@@ -16,12 +16,21 @@ func TestReadPackageManifestForms(t *testing.T) {
   <Properties><DisplayName>Forza Horizon 3 Hot Wheels</DisplayName><mx:ContentPackage>true</mx:ContentPackage></Properties>
   <Extensions><mx:PackageExtension Category="xbox.contentpackage"><mx:ContentPackage><mx:AllowedProduct Id="ef520a86-ebbe-4a01-8384-7b0eef90ab50" /></mx:ContentPackage></mx:PackageExtension></Extensions>
 </Package>`,
+		// the Store's optional package as the converter prepares it (content package declared)
 		"windows optional package": `<?xml version="1.0" encoding="utf-8"?>
-<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3">
+<Package xmlns:mx="http://schemas.microsoft.com/appx/2013/xbox/manifest" xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3">
   <Identity Name="Microsoft.ForzaHorizon3HotWheels" Version="1.0.63.2" />
-  <Properties><DisplayName>Forza Horizon 3 Hot Wheels</DisplayName></Properties>
+  <Properties><DisplayName>HOT WHEELS</DisplayName>
+  <mx:ContentPackage>true</mx:ContentPackage>
+  </Properties>
   <Dependencies><uap3:MainPackageDependency Name="Microsoft.OpusPG" /></Dependencies>
 </Package>`,
+	}
+	// the same package as the Store installs it: Azimuth refuses it, so azimuth-dlc does too
+	raw := t.TempDir()
+	os.WriteFile(filepath.Join(raw, "AppxManifest.xml"), []byte(`<Package><Identity Name="Microsoft.ForzaHorizon3HotWheels" Version="1.0.63.2" /><Properties><DisplayName>Forza Horizon 3 Hot Wheels</DisplayName></Properties><Dependencies><MainPackageDependency Name="Microsoft.OpusPG" /></Dependencies></Package>`), 0o644)
+	if _, err := readPackage(packages[1], raw); err == nil {
+		t.Error("a manifest without a content package declaration was accepted")
 	}
 	for name, m := range forms {
 		dir := t.TempDir()

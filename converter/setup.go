@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"unicode/utf16"
@@ -164,10 +165,25 @@ var expansionNames = map[string]string{
 	blizzardName:  "BLIZZARD MOUNTAIN",
 }
 
-// setExpansionName gives a converted package the short name Azimuth shows: the
-// DisplayName of its Properties and of its ContentPackageVisualElements. The
-// manifest is written as a new file, so a hard link to the user's original copy
-// is replaced, never written through.
+// declaresContentPackage reproduces Azimuth's check of a pinned package's
+// manifest (azimuth.exe 1.0.4, 0x1401a1150): somewhere in the text a
+// "ContentPackage>" followed by optional white space and "true".
+var declaresContentPackage = regexp.MustCompile(`ContentPackage>[ \t\r\n]*true`)
+
+const mxNamespace = "http://schemas.microsoft.com/appx/2013/xbox/manifest"
+
+// setExpansionName prepares a converted package's manifest for Azimuth:
+//   - the short name Azimuth shows, in the DisplayName of its Properties and of
+//     its visual elements;
+//   - <mx:ContentPackage>true</mx:ContentPackage> in its Properties when the
+//     manifest does not declare a content package. The Xbox builds of the
+//     expansions have it; the Store's Windows builds (Hot Wheels 1.0.63.2,
+//     Blizzard Mountain 1.0.4.2) are optional packages without it, and Azimuth
+//     refuses a pinned package whose manifest lacks it ("does not declare a
+//     content package with its display name and version as expected").
+//
+// The manifest is written as a new file, so a hard link to the user's original
+// copy is replaced, never written through.
 func setExpansionName(dir string) error {
 	id, err := packageIdentity(dir)
 	if err != nil {
@@ -191,12 +207,23 @@ func setExpansionName(dir string) error {
 		return err
 	}
 	old := m.Properties.DisplayName
-	if old == "" || old == name {
+	s := string(b)
+	if old != "" && old != name {
+		s = strings.Replace(s, "<DisplayName>"+old+"</DisplayName>", "<DisplayName>"+name+"</DisplayName>", 1)
+		s = strings.Replace(s, `DisplayName="`+old+`"`, `DisplayName="`+name+`"`, 1)
+	}
+	if !declaresContentPackage.MatchString(s) {
+		if !strings.Contains(s, "</Properties>") {
+			return fmt.Errorf("%s: the manifest has no Properties element", p)
+		}
+		s = strings.Replace(s, "</Properties>", "  <mx:ContentPackage>true</mx:ContentPackage>\r\n  </Properties>", 1)
+		if !strings.Contains(s, `xmlns:mx=`) {
+			s = strings.Replace(s, "<Package ", `<Package xmlns:mx="`+mxNamespace+`" `, 1)
+		}
+	}
+	if s == string(b) {
 		return nil
 	}
-	s := string(b)
-	s = strings.Replace(s, "<DisplayName>"+old+"</DisplayName>", "<DisplayName>"+name+"</DisplayName>", 1)
-	s = strings.Replace(s, `DisplayName="`+old+`"`, `DisplayName="`+name+`"`, 1)
 	tmp := p + ".tmp"
 	if err := os.WriteFile(tmp, []byte(s), 0o644); err != nil {
 		return err

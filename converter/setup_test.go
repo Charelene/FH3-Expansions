@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -37,6 +38,55 @@ func TestFindDumpPackagesNested(t *testing.T) {
 	}
 	if b != root || h != hw || z != bm {
 		t.Fatalf("found base %s, Hot Wheels %s, Blizzard Mountain %s", b, h, z)
+	}
+}
+
+// A Store build's manifest (an optional package, no content package declared)
+// gets the short name and <mx:ContentPackage>true, stays valid XML, and the
+// original it was hard-linked to is not touched.
+func TestSetExpansionNameStoreManifest(t *testing.T) {
+	src := t.TempDir()
+	m := "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n" +
+		`<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3" IgnorableNamespaces="uap uap3">` + "\r\n" +
+		`  <Identity Name="Microsoft.ForzaHorizon3HotWheels" Version="1.0.63.2" />` + "\r\n" +
+		"  <Properties>\r\n    <DisplayName>Forza Horizon 3 Hot Wheels</DisplayName>\r\n    <Logo>Logo.png</Logo>\r\n  </Properties>\r\n" +
+		`  <Dependencies><uap3:MainPackageDependency Name="Microsoft.OpusPG" /></Dependencies>` + "\r\n" +
+		`  <Applications><Application Id="x"><uap:VisualElements AppListEntry="none" DisplayName="Forza Horizon 3 Hot Wheels" /></Application></Applications>` + "\r\n" +
+		"</Package>\r\n"
+	orig := filepath.Join(src, "AppxManifest.xml")
+	if err := os.WriteFile(orig, []byte(m), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dst := t.TempDir()
+	if err := os.Link(orig, filepath.Join(dst, "AppxManifest.xml")); err != nil {
+		t.Fatal(err)
+	}
+	if err := setExpansionName(dst); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(filepath.Join(dst, "AppxManifest.xml"))
+	s := string(b)
+	if !declaresContentPackage.MatchString(s) {
+		t.Error("no content package declared:\n" + s)
+	}
+	if !strings.Contains(s, `xmlns:mx="`+mxNamespace+`"`) {
+		t.Error("mx namespace not declared")
+	}
+	if displayName(dst) != "HOT WHEELS" || !strings.Contains(s, `DisplayName="HOT WHEELS"`) {
+		t.Error("short name not set:\n" + s)
+	}
+	if id, err := packageIdentity(dst); err != nil || id != hotWheelsName {
+		t.Errorf("manifest no longer reads: %q %v", id, err)
+	}
+	if o, _ := os.ReadFile(orig); string(o) != m {
+		t.Error("the original manifest was changed")
+	}
+	// a second run changes nothing
+	if err := setExpansionName(dst); err != nil {
+		t.Fatal(err)
+	}
+	if b2, _ := os.ReadFile(filepath.Join(dst, "AppxManifest.xml")); string(b2) != s {
+		t.Error("second run changed the manifest")
 	}
 }
 
