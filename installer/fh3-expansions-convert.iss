@@ -47,6 +47,11 @@ PrivilegesRequired=lowest
 WizardStyle=modern
 Uninstallable=yes
 UninstallDisplayName=FH3 Expansions Converter for Azimuth
+#ifdef Sign
+; sign.ps1 defines Sign and the sign tool "azsign" (Azure Artifact Signing)
+SignTool=azsign
+SignedUninstaller=yes
+#endif
 
 [Files]
 Source: "{#ConverterExe}"; DestDir: "{app}"; Flags: ignoreversion

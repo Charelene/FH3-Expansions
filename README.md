@@ -81,7 +81,8 @@ and the converted expansions and puts the `content=` line back.
 ## Building
 
 `build.sh` builds everything into `dist\`. It needs [Go](https://go.dev), [mingw-w64](https://www.mingw-w64.org) and
-[Inno Setup 6](https://jrsoftware.org/isinfo.php).
+[Inno Setup 6](https://jrsoftware.org/isinfo.php). Releases are then signed with `sign.ps1` (Authenticode through
+Azure Artifact Signing; the maintainer's certificate and login are not part of this repository).
 
 | Folder | What |
 | --- | --- |
