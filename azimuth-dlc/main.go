@@ -284,6 +284,42 @@ type manifest struct {
 			} `xml:"ContentPackage"`
 		} `xml:"PackageExtension"`
 	} `xml:"Extensions"`
+	Dependencies struct {
+		MainPackageDependency []struct {
+			Name string `xml:"Name,attr"`
+		} `xml:"MainPackageDependency"`
+	} `xml:"Dependencies"`
+}
+
+const fh3MainPackage = "Microsoft.OpusPG" // Forza Horizon 3 for Windows
+
+// forFH3 says whether a manifest ties its package to Forza Horizon 3, in either
+// form the expansions were published in: an Xbox content package
+// (mx:ContentPackage with an xbox.contentpackage extension that allows FH3's
+// product), or a Windows optional package whose MainPackageDependency is the
+// Windows game (the Store builds, e.g. Hot Wheels 1.0.63.2, Blizzard Mountain
+// 1.0.4.2). Azimuth itself checks neither; this only guards against a wrong
+// folder.
+func forFH3(m manifest) bool {
+	for _, d := range m.Dependencies.MainPackageDependency {
+		if d.Name == fh3MainPackage {
+			return true
+		}
+	}
+	if strings.TrimSpace(m.Properties.ContentPackage) != "true" {
+		return false
+	}
+	for _, e := range m.Extensions.PackageExtension {
+		if e.Category != "xbox.contentpackage" {
+			continue
+		}
+		for _, a := range e.ContentPackage.AllowedProduct {
+			if strings.EqualFold(a.ID, fh3Allowed) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func readPackage(k known, dir string) (pkg, error) {
@@ -302,22 +338,8 @@ func readPackage(k known, dir string) (pkg, error) {
 	if m.Identity.Name != k.identity {
 		return p, fmt.Errorf("%s: Identity Name is %q, want %q", dir, m.Identity.Name, k.identity)
 	}
-	if strings.TrimSpace(m.Properties.ContentPackage) != "true" {
-		return p, fmt.Errorf("%s: Properties does not declare mx:ContentPackage true", dir)
-	}
-	allowed := false
-	for _, e := range m.Extensions.PackageExtension {
-		if e.Category != "xbox.contentpackage" {
-			continue
-		}
-		for _, a := range e.ContentPackage.AllowedProduct {
-			if strings.EqualFold(a.ID, fh3Allowed) {
-				allowed = true
-			}
-		}
-	}
-	if !allowed {
-		return p, fmt.Errorf("%s: no xbox.contentpackage extension with AllowedProduct %s", dir, fh3Allowed)
+	if !forFH3(m) {
+		return p, fmt.Errorf("%s: the manifest does not tie this package to Forza Horizon 3 (no MainPackageDependency %s, no xbox.contentpackage for product %s)", dir, fh3MainPackage, fh3Allowed)
 	}
 	// The same checks the validator makes after a list hit (0x1401a2396..0x1401a241b).
 	v := m.Identity.Version
